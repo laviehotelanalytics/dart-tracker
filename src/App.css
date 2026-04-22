@@ -186,3 +186,35 @@ body {
   color: white;
   text-transform: uppercase;
 }
+
+.save-btn {
+  background: var(--neon-yellow);
+  color: black;
+  border: none;
+  padding: 0.8rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  margin-top: 1rem;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+}
+
+.save-btn:hover { background: white; }
+
+.db-panel {
+  border-color: var(--neon-cyan);
+}
+
+.db-panel h2 { color: var(--neon-cyan); }
+
+.ledger-block {
+  margin-bottom: 1rem;
+  border-left: 2px solid #333;
+  padding-left: 0.5rem;
+}
+
+.ledger-date {
+  color: var(--neon-cyan);
+  font-size: 0.6rem;
+  margin-bottom: 0.5rem;
+}
