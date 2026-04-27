@@ -218,3 +218,146 @@ body {
   font-size: 0.6rem;
   margin-bottom: 0.5rem;
 }
+
+/* --- Clickable Interactions --- */
+.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s, padding-left 0.2s;
+}
+
+.clickable:hover {
+  background-color: rgba(0, 255, 255, 0.1);
+  padding-left: 0.5rem; /* Little nudge effect */
+  border-left: 2px solid var(--neon-cyan);
+}
+
+.click-hint {
+  font-size: 0.6rem;
+  color: #888;
+  font-style: italic;
+}
+
+/* --- Modal Styles --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85); /* Darken the background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px); /* Adds a nice frosted glass effect */
+}
+
+.modal-content {
+  background: var(--bg-color);
+  border: 2px solid var(--neon-pink);
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3), inset 0 0 15px rgba(255, 0, 255, 0.1);
+  padding: 2rem;
+  border-radius: 10px;
+  max-width: 90%;
+  width: 400px;
+  text-align: center;
+}
+
+.modal-title {
+  color: var(--neon-pink);
+  font-size: 1.2rem;
+  border-bottom: 2px dashed #333;
+  padding-bottom: 1rem;
+  margin-top: 0;
+}
+
+.modal-body {
+  margin: 1.5rem 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.modal-item {
+  color: white;
+  font-size: 0.8rem;
+  line-height: 1.8;
+  border-bottom: 1px solid #222;
+  padding: 0.5rem 0;
+}
+
+.close-btn {
+  background: transparent;
+  color: var(--neon-cyan);
+  border: 2px solid var(--neon-cyan);
+  padding: 0.8rem 2rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: var(--neon-cyan);
+  color: black;
+  box-shadow: 0 0 15px var(--neon-cyan);
+}
+
+/* --- Arcade Stepper Controls --- */
+.setup-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 2.5rem;
+  color: var(--neon-cyan);
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+}
+
+.player-stepper {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid var(--neon-yellow);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255, 255, 0, 0.15), inset 0 0 10px rgba(255, 255, 0, 0.1);
+}
+
+.stepper-btn {
+  background: transparent;
+  color: var(--neon-yellow);
+  border: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.1s ease-in-out;
+}
+
+/* Hover & Click Effects for the Buttons */
+.stepper-btn:hover {
+  color: white;
+  text-shadow: 0 0 10px var(--neon-yellow), 0 0 20px var(--neon-yellow);
+  transform: scale(1.15);
+}
+
+.stepper-btn:active {
+  transform: scale(0.9);
+  color: var(--neon-red);
+  text-shadow: 0 0 10px var(--neon-red);
+}
+
+.stepper-value {
+  color: white;
+  font-size: 1.4rem;
+  min-width: 2ch;
+  text-align: center;
+  text-shadow: 0 0 8px white, 0 0 15px var(--neon-yellow);
+}

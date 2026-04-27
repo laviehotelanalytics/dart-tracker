@@ -2,17 +2,19 @@ import { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
-  const [players, setPlayers] = useState([
-    { id: 1, name: 'Player 1', wins: 0, balance: 0 },
-    { id: 2, name: 'Player 2', wins: 0, balance: 0 },
-    { id: 3, name: 'Player 3', wins: 0, balance: 0 },
-    { id: 4, name: 'Player 4', wins: 0, balance: 0 },
-  ]);
+  const generatePlayers = (count) => {
+    return Array.from({ length: count }, (_, i) => ({
+      id: i + 1, name: `Player ${i + 1}`, wins: 0, balance: 0
+    }));
+  };
 
+  const [players, setPlayers] = useState(generatePlayers(4));
   const [history, setHistory] = useState([]);
-  const [ledger, setLedger] = useState([]); // NEW: State for KV database
+  const [ledger, setLedger] = useState([]); 
+  
+  // NEW: Modal State
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', content: null });
 
-  // NEW: Fetch historical debts when the app loads
   useEffect(() => {
     fetch('/api/debts')
       .then(res => res.json())
@@ -20,15 +22,33 @@ function App() {
       .catch(err => console.error("Could not load ledger", err));
   }, []);
 
+  // NEW: Arcade Stepper Logic (Min 2, Max 8)
+  const changePlayerCount = (delta) => {
+    const newCount = players.length + delta;
+    
+    // Prevent going below 2 or above 8 players
+    if (newCount < 2 || newCount > 8) return; 
+
+    // Warn if wiping an active board
+    if (history.length > 0 && !window.confirm("Changing players wipes the board. Continue?")) {
+      return; 
+    }
+
+    setPlayers(generatePlayers(newCount));
+    setHistory([]);
+  };
   const handleNameChange = (id, newName) => {
     setPlayers(players.map(p => p.id === id ? { ...p, name: newName } : p));
   };
 
   const logWin = (winnerId) => {
     const winnerName = players.find(p => p.id === winnerId).name;
+    const buyIn = 20;
+    const winAmount = buyIn * (players.length - 1);
+
     setPlayers(players.map(p => {
-      if (p.id === winnerId) return { ...p, wins: p.wins + 1, balance: p.balance + 60 };
-      return { ...p, balance: p.balance - 20 };
+      if (p.id === winnerId) return { ...p, wins: p.wins + 1, balance: p.balance + winAmount };
+      return { ...p, balance: p.balance - buyIn };
     }));
     setHistory(prev => [`Round ${prev.length + 1}: ${winnerName} won!`, ...prev]);
   };
@@ -52,50 +72,58 @@ function App() {
 
   const activeSettlements = calculateSettlements();
 
-  // NEW: Save to KV Database
   const saveToLedger = async () => {
     if (activeSettlements.length === 0) return alert("No debts to save!");
-    
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    
     const response = await fetch('/api/debts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: today, settlements: activeSettlements })
     });
-
     if (response.ok) {
       const updatedLedger = await response.json();
       setLedger(updatedLedger);
       alert("Night saved to database!");
-      // Reset board after saving
-      setPlayers(players.map(p => ({ ...p, wins: 0, balance: 0 })));
+      setPlayers(generatePlayers(players.length)); 
       setHistory([]);
     }
   };
 
   const resetGame = () => {
     if(window.confirm("Clear current board without saving?")) {
-      setPlayers(players.map(p => ({ ...p, wins: 0, balance: 0 })));
+      setPlayers(generatePlayers(players.length)); 
       setHistory([]);
     }
   };
 
+  // NEW: Helper to open the modal
+  const openModal = (title, content) => {
+    setModalConfig({ isOpen: true, title, content });
+  };
+
   return (
     <div className="arcade-container">
-      <header>
+      
+     <header>
         <h1 className="neon-text">DART WARS</h1>
         <p className="subtitle">20₱ BUY-IN // CLOUD LEDGER</p>
+        
+        {/* UPDATED: Arcade Stepper Controls */}
+        <div className="setup-controls">
+          <label>PLAYERS</label>
+          <div className="player-stepper">
+            <button className="stepper-btn" onClick={() => changePlayerCount(-1)}>-</button>
+            <span className="stepper-value">{players.length}</span>
+            <button className="stepper-btn" onClick={() => changePlayerCount(1)}>+</button>
+          </div>
+        </div>
       </header>
 
-      {/* --- Player Grid remains exactly the same --- */}
       <div className="player-grid">
         {players.map((player) => (
           <div key={player.id} className="player-card">
             <input 
-              type="text" 
-              value={player.name} 
-              onChange={(e) => handleNameChange(player.id, e.target.value)}
+              type="text" value={player.name} onChange={(e) => handleNameChange(player.id, e.target.value)}
               className="player-input"
             />
             <div className="stats">
@@ -108,16 +136,22 @@ function App() {
       </div>
 
       <div className="panels-container">
-        {/* Match Log Panel */}
         <div className="panel">
           <h2>MATCH LOG</h2>
           <div className="scroll-list">
             {history.length === 0 ? <p className="empty-text">Insert Coin...</p> : null}
-            {history.map((log, index) => <div key={index} className="list-item">{log}</div>)}
+            {history.map((log, index) => (
+              <div 
+                key={index} 
+                className="list-item clickable" 
+                onClick={() => openModal(`Log Details`, log)}
+              >
+                {log}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Live Settle Panel */}
         <div className="panel settle-panel">
           <h2 className="settle-title">LIVE TABS</h2>
           <div className="scroll-list">
@@ -126,19 +160,21 @@ function App() {
               <div key={index} className="list-item settlement-item">{settlement}</div>
             ))}
           </div>
-          {/* THE NEW SAVE BUTTON */}
           <button className="save-btn" onClick={saveToLedger}>SAVE TO LEDGER</button>
         </div>
 
-        {/* NEW: Database Ledger Panel */}
         <div className="panel db-panel">
           <h2>DATABASE HISTORY</h2>
           <div className="scroll-list">
             {ledger.length === 0 ? <p className="empty-text">No past debts.</p> : null}
             {ledger.map((entry, index) => (
-              <div key={index} className="ledger-block">
+              <div 
+                key={index} 
+                className="ledger-block clickable"
+                onClick={() => openModal(`Debts for ${entry.date}`, entry.settlements)}
+              >
                 <div className="ledger-date">{entry.date}</div>
-                {entry.settlements.map((s, i) => <div key={i} className="list-item">{s}</div>)}
+                <div className="click-hint">Click to view {entry.settlements.length} items...</div>
               </div>
             ))}
           </div>
@@ -146,6 +182,26 @@ function App() {
       </div>
 
       <button className="reset-btn" onClick={resetGame}>WIPE CURRENT BOARD</button>
+
+      {/* NEW: Modal Overlay UI */}
+      {modalConfig.isOpen && (
+        <div className="modal-overlay" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 className="modal-title">{modalConfig.title}</h2>
+            <div className="modal-body">
+              {/* Check if the content is a list of debts (Array) or a single string */}
+              {Array.isArray(modalConfig.content) ? (
+                modalConfig.content.map((item, i) => <p key={i} className="modal-item">{item}</p>)
+              ) : (
+                <p className="modal-item">{modalConfig.content}</p>
+              )}
+            </div>
+            <button className="close-btn" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>
+              CLOSE
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
