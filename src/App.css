@@ -361,3 +361,14 @@ body {
   text-align: center;
   text-shadow: 0 0 8px white, 0 0 15px var(--neon-yellow);
 }
+
+/* --- Modal Subtitles --- */
+.modal-subtitle {
+  color: var(--neon-cyan);
+  font-size: 0.8rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  padding-bottom: 0.3rem;
+  letter-spacing: 1px;
+}

@@ -11,8 +11,6 @@ function App() {
   const [players, setPlayers] = useState(generatePlayers(4));
   const [history, setHistory] = useState([]);
   const [ledger, setLedger] = useState([]); 
-  
-  // NEW: Modal State
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', content: null });
 
   useEffect(() => {
@@ -22,21 +20,14 @@ function App() {
       .catch(err => console.error("Could not load ledger", err));
   }, []);
 
-  // NEW: Arcade Stepper Logic (Min 2, Max 8)
   const changePlayerCount = (delta) => {
     const newCount = players.length + delta;
-    
-    // Prevent going below 2 or above 8 players
     if (newCount < 2 || newCount > 8) return; 
-
-    // Warn if wiping an active board
-    if (history.length > 0 && !window.confirm("Changing players wipes the board. Continue?")) {
-      return; 
-    }
-
+    if (history.length > 0 && !window.confirm("Changing players wipes the board. Continue?")) return; 
     setPlayers(generatePlayers(newCount));
     setHistory([]);
   };
+
   const handleNameChange = (id, newName) => {
     setPlayers(players.map(p => p.id === id ? { ...p, name: newName } : p));
   };
@@ -75,11 +66,14 @@ function App() {
   const saveToLedger = async () => {
     if (activeSettlements.length === 0) return alert("No debts to save!");
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    
     const response = await fetch('/api/debts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: today, settlements: activeSettlements })
+      // UPDATED: Now sending history to the database too
+      body: JSON.stringify({ date: today, settlements: activeSettlements, history: history })
     });
+    
     if (response.ok) {
       const updatedLedger = await response.json();
       setLedger(updatedLedger);
@@ -96,19 +90,16 @@ function App() {
     }
   };
 
-  // NEW: Helper to open the modal
   const openModal = (title, content) => {
     setModalConfig({ isOpen: true, title, content });
   };
 
   return (
     <div className="arcade-container">
-      
-     <header>
+      <header>
         <h1 className="neon-text">DART WARS</h1>
         <p className="subtitle">20₱ BUY-IN // CLOUD LEDGER</p>
         
-        {/* UPDATED: Arcade Stepper Controls */}
         <div className="setup-controls">
           <label>PLAYERS</label>
           <div className="player-stepper">
@@ -141,11 +132,7 @@ function App() {
           <div className="scroll-list">
             {history.length === 0 ? <p className="empty-text">Insert Coin...</p> : null}
             {history.map((log, index) => (
-              <div 
-                key={index} 
-                className="list-item clickable" 
-                onClick={() => openModal(`Log Details`, log)}
-              >
+              <div key={index} className="list-item clickable" onClick={() => openModal(`Log Details`, log)}>
                 {log}
               </div>
             ))}
@@ -171,10 +158,14 @@ function App() {
               <div 
                 key={index} 
                 className="ledger-block clickable"
-                onClick={() => openModal(`Debts for ${entry.date}`, entry.settlements)}
+                // UPDATED: Passing both history and settlements to the modal
+                onClick={() => openModal(`Records for ${entry.date}`, { 
+                  history: entry.history, 
+                  settlements: entry.settlements 
+                })}
               >
                 <div className="ledger-date">{entry.date}</div>
-                <div className="click-hint">Click to view {entry.settlements.length} items...</div>
+                <div className="click-hint">Click to view records...</div>
               </div>
             ))}
           </div>
@@ -183,18 +174,37 @@ function App() {
 
       <button className="reset-btn" onClick={resetGame}>WIPE CURRENT BOARD</button>
 
-      {/* NEW: Modal Overlay UI */}
+      {/* UPDATED: Modal Overlay UI */}
       {modalConfig.isOpen && (
         <div className="modal-overlay" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2 className="modal-title">{modalConfig.title}</h2>
             <div className="modal-body">
-              {/* Check if the content is a list of debts (Array) or a single string */}
-              {Array.isArray(modalConfig.content) ? (
-                modalConfig.content.map((item, i) => <p key={i} className="modal-item">{item}</p>)
+              
+              {/* If content is an object with history and settlements (Database Ledger click) */}
+              {modalConfig.content && typeof modalConfig.content === 'object' ? (
+                <>
+                  {/* Match History Section */}
+                  <h3 className="modal-subtitle">MATCH HISTORY</h3>
+                  {modalConfig.content.history && modalConfig.content.history.length > 0 ? (
+                    modalConfig.content.history.map((item, i) => <p key={`h-${i}`} className="modal-item">{item}</p>)
+                  ) : (
+                    <p className="modal-item" style={{ color: '#888' }}>No history recorded.</p>
+                  )}
+                  
+                  <br />
+
+                  {/* Settlements Section */}
+                  <h3 className="modal-subtitle" style={{ color: 'var(--neon-yellow)' }}>FINAL TABS</h3>
+                  {modalConfig.content.settlements && modalConfig.content.settlements.map((item, i) => (
+                    <p key={`s-${i}`} className="modal-item settlement-item">{item}</p>
+                  ))}
+                </>
               ) : (
+                /* If content is just a standard string (Live Match Log click) */
                 <p className="modal-item">{modalConfig.content}</p>
               )}
+
             </div>
             <button className="close-btn" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>
               CLOSE
