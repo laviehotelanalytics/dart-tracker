@@ -11,9 +11,10 @@ function App() {
   const [players, setPlayers] = useState(generatePlayers(4));
   const [history, setHistory] = useState([]);
   const [ledger, setLedger] = useState([]); 
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', content: null });
+  
+  // UPDATED: Added entryIndex to the modal state so it knows what to delete
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', content: null, entryIndex: null });
 
-  // THE FIX: Safe loading to prevent React crashes
   useEffect(() => {
     fetch('/api/debts')
       .then(res => res.json())
@@ -21,7 +22,7 @@ function App() {
         if (Array.isArray(data)) {
           setLedger(data);
         } else {
-          setLedger([]); // Fallback to empty if the database sends a bad response
+          setLedger([]); 
         }
       })
       .catch(err => {
@@ -99,10 +100,8 @@ function App() {
     }
   };
 
-  // THE NEW FEATURE: Delete a single entry
-  const deleteEntry = async (index, e) => {
-    e.stopPropagation(); // Stops the modal from opening when you click the X
-    
+  // UPDATED: Simplified delete function (runs from inside the modal)
+  const deleteEntry = async (index) => {
     if (window.confirm("Delete this specific record?")) {
       const response = await fetch('/api/debts', {
         method: 'DELETE',
@@ -113,6 +112,8 @@ function App() {
       if (response.ok) {
         const updatedLedger = await response.json();
         setLedger(updatedLedger);
+        // Close the modal after deleting
+        setModalConfig({ ...modalConfig, isOpen: false });
       }
     }
   };
@@ -128,8 +129,9 @@ function App() {
     }
   };
 
-  const openModal = (title, content) => {
-    setModalConfig({ isOpen: true, title, content });
+  // UPDATED: Now accepts an index parameter
+  const openModal = (title, content, index = null) => {
+    setModalConfig({ isOpen: true, title, content, entryIndex: index });
   };
 
   return (
@@ -196,16 +198,13 @@ function App() {
               <div 
                 key={index} 
                 className="ledger-block clickable"
+                // UPDATED: Passing the index here so the modal knows which one was clicked
                 onClick={() => openModal(`Records for ${entry.date}`, { 
                   history: entry.history, 
                   settlements: entry.settlements 
-                })}
+                }, index)}
               >
-                {/* UPDATED: Added a header row to hold the date and the X button side-by-side */}
-                <div className="ledger-header">
-                  <div className="ledger-date">{entry.date}</div>
-                  <button className="del-entry-btn" onClick={(e) => deleteEntry(index, e)}>X</button>
-                </div>
+                <div className="ledger-date">{entry.date}</div>
                 <div className="click-hint">Click to view records...</div>
               </div>
             ))}
@@ -241,7 +240,19 @@ function App() {
                 <p className="modal-item">{modalConfig.content}</p>
               )}
             </div>
-            <button className="close-btn" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>CLOSE</button>
+
+            {/* UPDATED: Two buttons side-by-side inside the modal */}
+            <div className="modal-actions">
+              {modalConfig.entryIndex !== null && (
+                <button className="delete-modal-btn" onClick={() => deleteEntry(modalConfig.entryIndex)}>
+                  DELETE
+                </button>
+              )}
+              <button className="close-btn" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>
+                CLOSE
+              </button>
+            </div>
+
           </div>
         </div>
       )}
