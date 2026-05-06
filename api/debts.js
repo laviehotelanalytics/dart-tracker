@@ -1,4 +1,3 @@
-// api/debts.js
 import { Redis } from '@upstash/redis';
 
 const redis = Redis.fromEnv();
@@ -28,13 +27,24 @@ export default async function handler(request, response) {
     }
   }
 
-  // NEW: DELETE method to wipe the database
+  // DELETE: Wipe all or specific index
   if (request.method === 'DELETE') {
     try {
-      await redis.del('dart-ledger');
-      return response.status(200).json({ message: "Ledger cleared" });
+      const body = request.body || {};
+      
+      // If we passed a specific index, just delete that one
+      if (body.index !== undefined) {
+        const existingLedger = await redis.get('dart-ledger') || [];
+        existingLedger.splice(body.index, 1); // Remove the item at this index
+        await redis.set('dart-ledger', existingLedger);
+        return response.status(200).json(existingLedger);
+      } else {
+        // Otherwise, wipe the whole database
+        await redis.del('dart-ledger');
+        return response.status(200).json([]);
+      }
     } catch (error) {
-      return response.status(500).json({ error: "Failed to clear ledger" });
+      return response.status(500).json({ error: "Failed to delete" });
     }
   }
 }

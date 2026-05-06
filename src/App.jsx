@@ -13,11 +13,21 @@ function App() {
   const [ledger, setLedger] = useState([]); 
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', content: null });
 
+  // THE FIX: Safe loading to prevent React crashes
   useEffect(() => {
     fetch('/api/debts')
       .then(res => res.json())
-      .then(data => setLedger(data))
-      .catch(err => console.error("Could not load ledger", err));
+      .then(data => {
+        if (Array.isArray(data)) {
+          setLedger(data);
+        } else {
+          setLedger([]); // Fallback to empty if the database sends a bad response
+        }
+      })
+      .catch(err => {
+        console.error("Could not load ledger", err);
+        setLedger([]);
+      });
   }, []);
 
   const changePlayerCount = (delta) => {
@@ -65,12 +75,11 @@ function App() {
 
   const saveToLedger = async () => {
     if (activeSettlements.length === 0) return alert("No debts to save!");
-    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     
     const response = await fetch('/api/debts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // UPDATED: Now sending history to the database too
       body: JSON.stringify({ date: today, settlements: activeSettlements, history: history })
     });
     
@@ -87,6 +96,35 @@ function App() {
     if(window.confirm("Clear current board without saving?")) {
       setPlayers(generatePlayers(players.length)); 
       setHistory([]);
+    }
+  };
+
+  // THE NEW FEATURE: Delete a single entry
+  const deleteEntry = async (index, e) => {
+    e.stopPropagation(); // Stops the modal from opening when you click the X
+    
+    if (window.confirm("Delete this specific record?")) {
+      const response = await fetch('/api/debts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ index: index })
+      });
+
+      if (response.ok) {
+        const updatedLedger = await response.json();
+        setLedger(updatedLedger);
+      }
+    }
+  };
+
+  const clearLedger = async () => {
+    if (ledger.length === 0) return alert("Database is already empty!");
+    if (window.confirm("WARNING: This will permanently wipe all saved cloud history. Are you absolutely sure?")) {
+      const response = await fetch('/api/debts', { method: 'DELETE' });
+      if (response.ok) {
+        setLedger([]);
+        alert("Database wiped clean!");
+      }
     }
   };
 
@@ -158,80 +196,52 @@ function App() {
               <div 
                 key={index} 
                 className="ledger-block clickable"
-                // UPDATED: Passing both history and settlements to the modal
                 onClick={() => openModal(`Records for ${entry.date}`, { 
                   history: entry.history, 
                   settlements: entry.settlements 
                 })}
               >
-                <div className="ledger-date">{entry.date}</div>
+                {/* UPDATED: Added a header row to hold the date and the X button side-by-side */}
+                <div className="ledger-header">
+                  <div className="ledger-date">{entry.date}</div>
+                  <button className="del-entry-btn" onClick={(e) => deleteEntry(index, e)}>X</button>
+                </div>
                 <div className="click-hint">Click to view records...</div>
               </div>
             ))}
           </div>
-          <div className="panel db-panel">
-          <h2>DATABASE HISTORY</h2>
-          <div className="scroll-list">
-            {ledger.length === 0 ? <p className="empty-text">No past debts.</p> : null}
-            {ledger.map((entry, index) => (
-              <div 
-                key={index} 
-                className="ledger-block clickable"
-                onClick={() => openModal(`Records for ${entry.date}`, { 
-                  history: entry.history, 
-                  settlements: entry.settlements 
-                })}
-              >
-                <div className="ledger-date">{entry.date}</div>
-                <div className="click-hint">Click to view records...</div>
-              </div>
-            ))}
-          </div>
-          {/* NEW: Wipe Database Button */}
           {ledger.length > 0 && (
             <button className="delete-db-btn" onClick={clearLedger}>WIPE DATABASE</button>
           )}
-        </div>
         </div>
       </div>
 
       <button className="reset-btn" onClick={resetGame}>WIPE CURRENT BOARD</button>
 
-      {/* UPDATED: Modal Overlay UI */}
       {modalConfig.isOpen && (
         <div className="modal-overlay" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2 className="modal-title">{modalConfig.title}</h2>
             <div className="modal-body">
-              
-              {/* If content is an object with history and settlements (Database Ledger click) */}
               {modalConfig.content && typeof modalConfig.content === 'object' ? (
                 <>
-                  {/* Match History Section */}
                   <h3 className="modal-subtitle">MATCH HISTORY</h3>
                   {modalConfig.content.history && modalConfig.content.history.length > 0 ? (
                     modalConfig.content.history.map((item, i) => <p key={`h-${i}`} className="modal-item">{item}</p>)
                   ) : (
                     <p className="modal-item" style={{ color: '#888' }}>No history recorded.</p>
                   )}
-                  
                   <br />
-
-                  {/* Settlements Section */}
                   <h3 className="modal-subtitle" style={{ color: 'var(--neon-yellow)' }}>FINAL TABS</h3>
                   {modalConfig.content.settlements && modalConfig.content.settlements.map((item, i) => (
                     <p key={`s-${i}`} className="modal-item settlement-item">{item}</p>
                   ))}
                 </>
               ) : (
-                /* If content is just a standard string (Live Match Log click) */
                 <p className="modal-item">{modalConfig.content}</p>
               )}
-
             </div>
-            <button className="close-btn" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>
-              CLOSE
-            </button>
+            <button className="close-btn" onClick={() => setModalConfig({ ...modalConfig, isOpen: false })}>CLOSE</button>
           </div>
         </div>
       )}
