@@ -393,3 +393,28 @@ body {
   box-shadow: 0 0 15px var(--neon-red);
   border-style: solid;
 }
+
+/* --- Modal Action Buttons --- */
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.delete-modal-btn {
+  background: transparent;
+  color: var(--neon-red);
+  border: 2px solid var(--neon-red);
+  padding: 0.8rem 1.5rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-modal-btn:hover {
+  background: var(--neon-red);
+  color: white;
+  box-shadow: 0 0 15px var(--neon-red);
+}
