@@ -169,6 +169,29 @@ function App() {
               </div>
             ))}
           </div>
+          <div className="panel db-panel">
+          <h2>DATABASE HISTORY</h2>
+          <div className="scroll-list">
+            {ledger.length === 0 ? <p className="empty-text">No past debts.</p> : null}
+            {ledger.map((entry, index) => (
+              <div 
+                key={index} 
+                className="ledger-block clickable"
+                onClick={() => openModal(`Records for ${entry.date}`, { 
+                  history: entry.history, 
+                  settlements: entry.settlements 
+                })}
+              >
+                <div className="ledger-date">{entry.date}</div>
+                <div className="click-hint">Click to view records...</div>
+              </div>
+            ))}
+          </div>
+          {/* NEW: Wipe Database Button */}
+          {ledger.length > 0 && (
+            <button className="delete-db-btn" onClick={clearLedger}>WIPE DATABASE</button>
+          )}
+        </div>
         </div>
       </div>
 

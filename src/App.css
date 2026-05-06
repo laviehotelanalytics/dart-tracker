@@ -372,3 +372,24 @@ body {
   padding-bottom: 0.3rem;
   letter-spacing: 1px;
 }
+
+/* --- Wipe Database Button --- */
+.delete-db-btn {
+  background: transparent;
+  color: var(--neon-red);
+  border: 2px dashed var(--neon-red);
+  padding: 0.8rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  margin-top: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.delete-db-btn:hover {
+  background: var(--neon-red);
+  color: white;
+  box-shadow: 0 0 15px var(--neon-red);
+  border-style: solid;
+}
